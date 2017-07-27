@@ -1,0 +1,3 @@
+[submodule "dotparse"]
+	path = dotparse
+	url = https://github.com/revn-project/DotParse.git
