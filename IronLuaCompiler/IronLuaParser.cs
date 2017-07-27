@@ -5,7 +5,6 @@ using static Revn.DotParse.Parsers.StringParsers;
 
 namespace IronLuaCompiler
 {
-
     public class IronLuaParser
     {
         private static readonly Parser<string, string> Identifier
@@ -31,19 +30,29 @@ namespace IronLuaCompiler
         private static readonly Parser<string, LuaObject> Expression
             = LuaAssignmentExpression;
 
+        private static readonly Parser<string, LuaObject[]> TrailingParameter
+            = Char(',').SeqT(Identifier).Map(item => new LuaParameter(item.b) as LuaObject).Any();
+
+        private static readonly Parser<string, LuaObject[]> Parameter
+            = Identifier
+                .Map(item => new LuaParameter(item) as LuaObject).CanFail()
+                .SeqT(TrailingParameter)
+                .Map(item => new[] {item.a}.Concat(item.b).ToArray());
+
         private static readonly Parser<string, LuaFunction[]> LuaFunction
             = Skip("function")
                 .SeqT(Identifier)        .Map(item => item.b)
                 .SeqT(Char('('))         .Map(item => item.a)
-                .SeqT(Identifier)        .Map(item => new {Name = item.a, Identifier = new LuaVariable(item.b)})
+                .SeqT(Parameter)         .Map(item => new {Name = item.a, Identifiers = item.b})
                 .SeqT(Char(')'))         .Map(item => item.a)
-                .SeqT(Expression.Many()) .Map(item => new {item.a.Name, item.a.Identifier, Expressions = item.b})
+                .SeqT(Expression.Many()) .Map(item => new {item.a.Name, item.a.Identifiers, Expressions = item.b})
                 .SeqT(Match("end"))      .Map(item => item.a)
-                .Map(item => new[] {new LuaFunction(item.Name, new [] {item.Identifier}, item.Expressions)});
+                .Map(item => new[] {new LuaFunction(item.Name, item.Identifiers, item.Expressions)});
 
         public static string Parse(string s)
         {
-            return ( LuaFunction(new LuaCodeSource(s)) as Success<string, LuaFunction[]> )?.Value.First()?.GenerateIl();
+            var hoge = (LuaFunction(new LuaCodeSource(s)) as Success<string, LuaFunction[]>)?.Value.First();
+            return hoge?.GenerateIl();
         }
     }
 

@@ -47,7 +47,7 @@
 
         internal override string GenerateIl()
         {
-            throw new System.NotImplementedException();
+            return Name;
         }
     }
 
